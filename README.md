@@ -1,7 +1,7 @@
-nparrot
-=======
-
-<img src="media/nparrot.png" width="300" alt="Stylized logo for nostr parrot">
+<div align="center">
+  <img src="media/nparrot.png" alt="Logo" width="200" />
+  <h1>nparrot</h1>
+</div>
 
 `nparrot` (_"Nostr Parrot"_) is a convenient CLI tool that facilitates one-on-one DM messaging over Nostr ([NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md)).
 
