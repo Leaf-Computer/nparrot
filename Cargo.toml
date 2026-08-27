@@ -8,8 +8,8 @@ edition = "2021"
 clap = { version = "4.1", features = ["derive", "env"] }
 tokio = { version = "1", features = ["full"] }
 nostr-sdk = { version = "0.41", features = ["all-nips"] }
-rmcp = { version = "0.1.5" , features = ["server", "transport-io"] }
-tracing-subscriber = "0.3"
+rmcp = { version = "1.4.0" , features = ["server", "transport-io"] }
+tracing-subscriber = "0.3.20"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 log = "0.4.27"
