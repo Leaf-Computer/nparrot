@@ -1,10 +1,9 @@
 use crate::utils::wait_for_message;
 use nostr_sdk::prelude::*;
 use rmcp::{
-    model::{
-        CallToolResult, Content, Implementation, ProtocolVersion, ServerCapabilities, ServerInfo,
-    },
-    schemars, tool, Error as RmcpError, ServerHandler,
+    handler::server::{router::tool::ToolRouter, wrapper::Parameters},
+    model::{ServerCapabilities, ServerInfo},
+    schemars, tool, tool_handler, tool_router, ErrorData, ServerHandler,
 };
 
 #[derive(Debug, serde::Deserialize, schemars::JsonSchema)]
@@ -15,15 +14,18 @@ pub struct SendMessageRequest {
 
 #[derive(Debug, Clone)]
 pub struct Chat {
+    #[allow(dead_code)]
+    tool_router: ToolRouter<Self>,
     client: Client,
     our_pubkey: PublicKey,
     target_pubkey: PublicKey,
 }
 
-#[tool(tool_box)]
+#[tool_router]
 impl Chat {
     pub fn new(client: Client, our_pubkey: PublicKey, target_pubkey: PublicKey) -> Self {
         Self {
+            tool_router: Self::tool_router(),
             client,
             our_pubkey,
             target_pubkey,
@@ -33,35 +35,27 @@ impl Chat {
     #[tool(description = "Send a message to the user")]
     async fn send(
         &self,
-        #[tool(aggr)] SendMessageRequest { message }: SendMessageRequest,
-    ) -> Result<CallToolResult, RmcpError> {
+        Parameters(SendMessageRequest { message }): Parameters<SendMessageRequest>,
+    ) -> Result<String, ErrorData> {
         self.client
             .send_private_msg(self.target_pubkey, message, [])
             .await
-            .map_err(|e| RmcpError::internal_error(e.to_string(), None))?;
-        Ok(CallToolResult::success(vec![Content::text("Sent message")]))
+            .map_err(|e| ErrorData::internal_error(e.to_string(), None))?;
+        Ok("Sent message".to_string())
     }
 
     #[tool(description = "Listen and wait for the user's next message")]
-    async fn wait(&self) -> Result<CallToolResult, RmcpError> {
-        let message = wait_for_message(&self.client, &self.our_pubkey, &self.target_pubkey)
+    async fn wait(&self) -> Result<String, ErrorData> {
+        wait_for_message(&self.client, &self.our_pubkey, &self.target_pubkey)
             .await
-            .map_err(|e| RmcpError::internal_error(e.to_string(), None))?;
-
-        Ok(CallToolResult::success(vec![Content::text(message)]))
+            .map_err(|e| ErrorData::internal_error(e.to_string(), None))
     }
 }
 
-#[tool(tool_box)]
+#[tool_handler]
 impl ServerHandler for Chat {
     fn get_info(&self) -> ServerInfo {
-        ServerInfo {
-            protocol_version: ProtocolVersion::V_2024_11_05,
-            capabilities: ServerCapabilities::builder()
-                .enable_tools()
-                .build(),
-            server_info: Implementation::from_build_env(),
-            instructions: Some("This server provides tools for talking to a specific user over the Nostr protocol via encrypted DMs.".to_string()),
-        }
+        ServerInfo::new(ServerCapabilities::builder().enable_tools().build())
+            .with_instructions("This server provides tools for talking to a specific user over the Nostr protocol via encrypted DMs.")
     }
 }
